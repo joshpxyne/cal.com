@@ -4,6 +4,7 @@ import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { Trans } from "next-i18next";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import Script from "next/script";
 import type { FC } from "react";
 import { memo, useEffect, useState } from "react";
 import { z } from "zod";
@@ -61,6 +62,8 @@ import classNames from "@calcom/ui/classNames";
 import useMeQuery from "@lib/hooks/useMeQuery";
 
 import { TRPCClientError } from "@trpc/client";
+
+const coframeProjectId = "67d9fe0909f56f690b8b68d7";
 
 type GetUserEventGroupsResponse = RouterOutputs["viewer"]["eventTypes"]["getUserEventGroups"];
 type GetEventTypesFromGroupsResponse = RouterOutputs["viewer"]["eventTypes"]["getEventTypesFromGroup"];
@@ -1015,12 +1018,36 @@ const EventTypesPage: React.FC = () => {
   }, [orgBranding, user]);
 
   return (
-    <InfiniteScrollMain
-      profiles={getUserEventGroupsData?.profiles}
-      eventTypeGroups={getUserEventGroupsData?.eventTypeGroups}
-      status={getUserEventGroupsStatus}
-      errorMessage={getUserEventGroupsStatusError?.message}
-    />
+    <>
+      <InfiniteScrollMain
+        profiles={getUserEventGroupsData?.profiles}
+        eventTypeGroups={getUserEventGroupsData?.eventTypeGroups}
+        status={getUserEventGroupsStatus}
+        errorMessage={getUserEventGroupsStatusError?.message}
+      />
+      <Script
+        strategy="beforeInteractive"
+        src={`https://cdn.coframe.com/cf.min.js?project_id=${coframeProjectId}`}
+      />
+      <Script id="coframe-setup" strategy="beforeInteractive">
+        {`
+    // Coframe antiflicker: hide body until coframe:show event or 2s timeout
+    const style = document.createElement('style');
+    style.innerHTML = 'body { opacity: 0 !important; }';
+    const cfhide = () => document.head.appendChild(style);
+    const cfshow = () => style.remove();
+    cfhide(); setTimeout(cfshow, 2000);
+    document.addEventListener('coframe:show', cfshow);
+
+    // Coframe queue setup:
+    window.CFQ = window.CFQ || [];
+    window.CFQ.push({config: {
+        projectId: '${coframeProjectId}',
+        waitForHydration: true, // NOTE: make sure you implemented the second part of the instructions
+    }});
+    `}
+      </Script>
+    </>
   );
 };
 
